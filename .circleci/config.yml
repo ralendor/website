@@ -1,45 +1,13 @@
-version: 2
-jobs:
-  build:
-    docker:
-      - image: circleci/node:10.15.1
-    steps:
-      - checkout
-      - run:
-          command: make
-      - persist_to_workspace:
-          root: .
-          paths:
-            - public
-
-  deploy:
-    docker:
-      - image: olizilla/ipfs-dns-deploy:1.1
-        environment:
-          DOMAIN: ipld.io
-          BUILD_DIR: public
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - run:
-          name: Deploy website to IPFS
-          command: |
-            pin_name="$DOMAIN build $CIRCLE_BUILD_NUMBER"
-
-            hash=$(pin-to-cluster.sh "$pin_name" /tmp/workspace/$BUILD_DIR)
-
-            echo "Website added to IPFS: https://ipfs.io/ipfs/$hash"
-
-            if [ "$CIRCLE_BRANCH" == "master" ] ; then
-              dnslink-dnsimple -d $DOMAIN -r _dnslink -l /ipfs/$hash
-            fi
-
+# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+# Use a package of configuration called an orb.
+orbs:
+  # Declare a dependency on the welcome-orb
+  welcome: circleci/welcome-orb@0.4.1
+# Orchestrate or schedule a set of jobs
 workflows:
-  version: 2
-  build-deploy:
+  # Name the workflow "welcome"
+  welcome:
+    # Run the welcome/run job in its own container
     jobs:
-      - build
-      - deploy:
-          context: ipfs-dns-deploy
-          requires:
-            - build
+      - welcome/run
